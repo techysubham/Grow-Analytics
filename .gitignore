@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+package-lock.json
+
+# Env
+.env
+.env.* 
+
+# Build / Vite
+/dist
+/.vite
+/build
+/frontend/dist
+/frontend/.vite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Backend logs
+/backend/logs
