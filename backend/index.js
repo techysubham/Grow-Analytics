@@ -10,7 +10,20 @@ const accountsRouter = require('./routes/accounts');
 const categoriesRouter = require('./routes/categories');
 
 const app = express();
-app.use(cors());
+
+// Configure CORS for both local and production
+app.use(cors({
+  origin: [
+    'http://localhost:3000',           // Local frontend dev
+    'http://localhost:5173',           // Vite dev server
+    'https://grow-analytics.vercel.app', // Vercel production
+    /.+\.vercel\.app$/                 // Any Vercel preview deployment
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(bodyParser.json());
 
 const MONGODB_URI = process.env.MONGODB_URI;

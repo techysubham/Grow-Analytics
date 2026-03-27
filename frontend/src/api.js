@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API = axios.create({ baseURL: 'http://localhost:4000/api' });
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+
+const API = axios.create({ baseURL: API_BASE });
 
 export const loadEntry = async (account, marketplace, date) => {
   const res = await API.get('/entries', { params: { account, marketplace, date } });
