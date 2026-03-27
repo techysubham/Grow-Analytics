@@ -2,15 +2,15 @@ const express = require('express');
 const router = express.Router();
 const Entry = require('../models/Entry');
 
-// Create or update an entry for account+date
+// Create or update an entry for account+date+marketplace
 router.post('/', async (req, res) => {
   try {
-    const { account, date, items } = req.body;
-    if (!account || !date) return res.status(400).json({ error: 'account and date are required' });
+    const { account, marketplace, date, items } = req.body;
+    if (!account || !date || !marketplace) return res.status(400).json({ error: 'account, marketplace and date are required' });
 
     const doc = await Entry.findOneAndUpdate(
-      { account, date },
-      { $set: { items } },
+      { account, marketplace, date },
+      { $set: { account, marketplace, date, items } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.json(doc);
@@ -19,24 +19,25 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get entry for account+date
+// Get entry for account+date+marketplace
 router.get('/', async (req, res) => {
   try {
-    const { account, date } = req.query;
-    if (!account || !date) return res.status(400).json({ error: 'account and date are required' });
-    const doc = await Entry.findOne({ account, date });
+    const { account, marketplace, date } = req.query;
+    if (!account || !date || !marketplace) return res.status(400).json({ error: 'account, marketplace and date are required' });
+    const doc = await Entry.findOne({ account, marketplace, date });
     res.json(doc || null);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Aggregate entries by date and category. Accept optional filters: account, startDate, endDate
+// Aggregate entries by date and category. Accept optional filters: account, marketplace, startDate, endDate
 router.get('/aggregate', async (req, res) => {
   try {
-    const { account, startDate, endDate } = req.query;
+    const { account, marketplace, startDate, endDate } = req.query;
     const q = {};
     if (account) q.account = account;
+    if (marketplace) q.marketplace = marketplace;
     if (startDate || endDate) q.date = {};
     if (startDate) q.date.$gte = startDate;
     if (endDate) q.date.$lte = endDate;
@@ -57,12 +58,13 @@ router.get('/aggregate', async (req, res) => {
   }
 });
 
-// Return distinct dates for an account (useful for date pickers / ranges)
+// Return distinct dates for an account+marketplace (useful for date pickers / ranges)
 router.get('/dates', async (req, res) => {
   try {
-    const { account } = req.query;
+    const { account, marketplace } = req.query;
     const q = {};
     if (account) q.account = account;
+    if (marketplace) q.marketplace = marketplace;
     const dates = await Entry.distinct('date', q);
     dates.sort();
     res.json(dates);
