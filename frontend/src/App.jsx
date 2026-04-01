@@ -29,11 +29,8 @@ export default function App() {
         const mkts = await fetchMarketplaces()
         setMarketplaces(mkts || [])
         if (mkts && mkts.length) setMarketplace(mkts[0])
-        
-        const cats = await fetchCategories()
-        if (cats && cats.length) { setCategories(cats); setItems(cats.map(name=>({name, qty:0}))) }
       } catch (err) {
-        console.error('fetch marketplaces/categories error', err)
+        console.error('fetch marketplaces error', err)
       }
     })()
   }, [])
@@ -54,6 +51,36 @@ export default function App() {
       })()
     }
   }, [marketplace])
+
+  // Fetch categories when account or marketplace changes
+  useEffect(() => {
+    if (account && marketplace) {
+      (async () => {
+        try {
+          console.log(`Fetching categories for ${account}/${marketplace}...`);
+          const cats = await fetchCategories(account, marketplace)
+          console.log(`Fetched ${cats?.length || 0} categories:`, cats?.slice(0, 3));
+          if (cats && cats.length) {
+            setCategories(cats)
+            // Preserve quantities from current items where category name matches
+            const newItems = cats.map(catName => ({
+              name: catName,
+              qty: items.find(i => i.name === catName)?.qty || 0
+            }))
+            setItems(newItems)
+          } else {
+            console.warn('No categories fetched, falling back to defaults');
+            setCategories(CATEGORIES)
+            setItems(CATEGORIES.map(name => ({ name, qty: 0 })))
+          }
+        } catch (err) {
+          console.error(`Failed to fetch categories for ${account}/${marketplace}:`, err)
+          setCategories(CATEGORIES)
+          setItems(CATEGORIES.map(name => ({ name, qty: 0 })))
+        }
+      })()
+    }
+  }, [account, marketplace])
 
   // Auto-load data when account or date changes
   useEffect(() => {
@@ -129,17 +156,41 @@ export default function App() {
   }
 
   const handleAddCategory = async () => {
+    if (!account || !marketplace) {
+      alert('Please select account and marketplace first');
+      return;
+    }
+    
     let name = prompt('New category name')
     if (!name) return
     name = name.trim()
     if (!name) return
     try {
-      await createCategory(name)
-      const cats = await fetchCategories()
-      setCategories(cats)
-      setItems(cats.map(n=>({name:n, qty:0})))
+      console.log(`[${account}/${marketplace}] Creating category "${name}"...`)
+      const result = await createCategory(name, account, marketplace)
+      console.log(`[${account}/${marketplace}] Category created:`, result)
+      
+      // IMPORTANT: Fetch fresh categories ONLY for this account+marketplace combination
+      console.log(`[${account}/${marketplace}] Fetching updated category list...`)
+      const cats = await fetchCategories(account, marketplace)
+      console.log(`[${account}/${marketplace}] Updated categories (${cats?.length || 0}):`, cats?.slice(0, 5))
+      
+      if (cats && cats.length) {
+        setCategories(cats)
+        // Preserve quantities from current items
+        const newItems = cats.map(catName => ({
+          name: catName,
+          qty: items.find(i => i.name === catName)?.qty || 0
+        }))
+        setItems(newItems)
+        setMessage(`Category "${name}" added to ${account}`)
+        console.log(`[${account}/${marketplace}] Successfully added category "${name}"`)
+      } else {
+        console.warn(`[${account}/${marketplace}] No categories returned from server`)
+        setMessage('Category saved but failed to fetch updated list')
+      }
     } catch (err) {
-      console.error(err)
+      console.error(`[${account}/${marketplace}] Add category error:`, err)
       alert('Failed to create category: ' + (err.response?.data?.error || err.message))
     }
   }

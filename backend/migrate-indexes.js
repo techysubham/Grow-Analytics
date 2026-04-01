@@ -16,23 +16,51 @@ async function migrateIndexes() {
     });
     console.log('✓ MongoDB connected');
 
+    // Migrate Account indexes
     const Account = require('./models/Account');
-    const collection = Account.collection;
+    const accountCollection = Account.collection;
 
-    console.log('Dropping old indexes...');
+    console.log('\n--- Migrating Account Collection ---');
+    console.log('Dropping old Account indexes...');
     try {
-      await collection.dropIndexes();
-      console.log('✓ Old indexes dropped');
+      await accountCollection.dropIndexes();
+      console.log('✓ Old Account indexes dropped');
     } catch (e) {
-      console.log('ℹ No old indexes to drop');
+      console.log('ℹ No old Account indexes to drop');
     }
 
     console.log('Creating new compound index on (name, marketplace)...');
-    await collection.createIndex({ name: 1, marketplace: 1 }, { unique: true });
-    console.log('✓ New index created successfully');
+    await accountCollection.createIndex({ name: 1, marketplace: 1 }, { unique: true });
+    console.log('✓ Account index created successfully');
+
+    // Migrate Category indexes
+    const Category = require('./models/Category');
+    const categoryCollection = Category.collection;
+
+    console.log('\n--- Migrating Category Collection ---');
+    console.log('Dropping old Category indexes...');
+    try {
+      await categoryCollection.dropIndexes();
+      console.log('✓ Old Category indexes dropped');
+    } catch (e) {
+      console.log('ℹ No old Category indexes to drop');
+    }
+
+    console.log('Creating new compound index on (name, account, marketplace)...');
+    await categoryCollection.createIndex({ name: 1, account: 1, marketplace: 1 }, { unique: true });
+    console.log('✓ Category index created successfully');
+
+    console.log('\n--- Cleaning up old invalid categories ---');
+    const oldCategoriesRemoved = await categoryCollection.deleteMany({ 
+      $or: [
+        { account: { $exists: false } },
+        { marketplace: { $exists: false } }
+      ]
+    });
+    console.log(`✓ Removed ${oldCategoriesRemoved.deletedCount} old invalid categories`);
 
     console.log('\n✓ Index migration completed!');
-    console.log('You can now create accounts with the same name across different marketplaces.');
+    console.log('Categories are now account and marketplace-specific.');
     
     process.exit(0);
   } catch (err) {

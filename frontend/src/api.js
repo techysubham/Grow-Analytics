@@ -44,13 +44,13 @@ export const fetchMarketplaces = async () => {
   return res.data;
 };
 
-export const fetchCategories = async () => {
-  const res = await API.get('/categories');
+export const fetchCategories = async (account, marketplace) => {
+  const res = await API.get('/categories', { params: { account, marketplace } });
   return res.data;
 };
 
-export const createCategory = async (name) => {
-  const res = await API.post('/categories', { name });
+export const createCategory = async (name, account, marketplace) => {
+  const res = await API.post('/categories', { name, account, marketplace });
   return res.data;
 };
 
