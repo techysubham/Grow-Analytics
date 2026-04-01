@@ -152,4 +152,87 @@ router.delete('/debug/cleanup-invalid', async (req, res) => {
   }
 });
 
+// Edit category name for specific account + marketplace
+router.put('/', async (req, res) => {
+  try {
+    let { oldName, newName, account, marketplace } = req.body;
+    
+    // Validate inputs
+    if (!oldName || !newName || !account || !marketplace) {
+      return res.status(400).json({ error: 'oldName, newName, account, and marketplace are required' });
+    }
+    
+    oldName = String(oldName).trim();
+    newName = String(newName).trim();
+    account = String(account).trim();
+    marketplace = String(marketplace).trim();
+    
+    if (!oldName || !newName || !account || !marketplace) {
+      return res.status(400).json({ error: 'fields cannot be empty' });
+    }
+    
+    // Check if new name already exists for this account + marketplace
+    const existing = await Category.findOne({ name: newName, account, marketplace });
+    if (existing) {
+      return res.status(400).json({ error: 'Category with this name already exists for this account' });
+    }
+    
+    console.log(`Editing category: "${oldName}" -> "${newName}" for ${account}/${marketplace}`);
+    
+    const cat = await Category.findOneAndUpdate(
+      { name: oldName, account: account, marketplace: marketplace },
+      { $set: { name: newName } },
+      { new: true, runValidators: true }
+    );
+    
+    if (!cat) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
+    console.log(`Category updated: ${cat._id}`);
+    res.json({ name: cat.name, account: cat.account, marketplace: cat.marketplace });
+  } catch (err) {
+    console.error('Category edit error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete category for specific account + marketplace
+router.delete('/', async (req, res) => {
+  try {
+    let { name, account, marketplace } = req.body;
+    
+    // Validate inputs
+    if (!name || !account || !marketplace) {
+      return res.status(400).json({ error: 'name, account, and marketplace are required' });
+    }
+    
+    name = String(name).trim();
+    account = String(account).trim();
+    marketplace = String(marketplace).trim();
+    
+    if (!name || !account || !marketplace) {
+      return res.status(400).json({ error: 'fields cannot be empty' });
+    }
+    
+    console.log(`Deleting category: "${name}" for ${account}/${marketplace}`);
+    
+    const result = await Category.findOneAndDelete({
+      name: name,
+      account: account,
+      marketplace: marketplace
+    });
+    
+    if (!result) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
+    console.log(`Category deleted: ${result._id}`);
+    res.json({ message: 'Category deleted successfully', name: result.name });
+  } catch (err) {
+    console.error('Category deletion error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

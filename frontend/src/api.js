@@ -54,4 +54,14 @@ export const createCategory = async (name, account, marketplace) => {
   return res.data;
 };
 
+export const editCategory = async (oldName, newName, account, marketplace) => {
+  const res = await API.put('/categories', { oldName, newName, account, marketplace });
+  return res.data;
+};
+
+export const deleteCategory = async (name, account, marketplace) => {
+  const res = await API.delete('/categories', { data: { name, account, marketplace } });
+  return res.data;
+};
+
 export default API;
